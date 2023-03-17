@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
-import { SunsynkApiClient } from 'sunsynk-node-api-client'
-import {createPromptModule} from 'inquirer';
+import { SunsynkApiClient } from 'sunsynk-node-api-client';
+import { createPromptModule } from 'inquirer';
 import axiosRetry from 'axios-retry';
 import chalk from "chalk";
 
@@ -24,7 +24,7 @@ async function start() {
       {
         type: 'input',
         name: 'username',
-        message: 'Username:',        
+        message: 'Username:',
       },
       {
         type: 'password',
@@ -33,31 +33,58 @@ async function start() {
       }
     ]);
     username = answers.username;
-    password = answers.password;    
+    password = answers.password;
   }
 
   const client = new SunsynkApiClient(username, password);
 
-  axiosRetry((client as any)._client, { retries: 3, retryDelay: axiosRetry.exponentialDelay});
+  axiosRetry((client as any)._client, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
 
   console.log(chalk.green("Logged in as: %s"), (await client.getUser()).data.nickname);
-  
+
   const plants = await client.getPlants();
   console.log("Plants:", plants.data.infos.length);
   console.log("First plant, ID:", plants.data.infos[0].id, plants.data.infos[0].name);
 
   console.log("Plant: ", await client.getPlant(plants.data.infos[0].id));
-  
+
 
   console.log("Generation: ", await client.getGenerationUse(plants.data.infos[0].id));
 
-  while(true) {
-    console.clear();
-    console.log("Realtime", await client.getRealtimeData(plants.data.infos[0].id));
-    const flow = await client.getFlow(plants.data.infos[0].id, new Date());
+  function colorIt(str: string, good: boolean, bad: boolean) {
+    if (good) {
+      return chalk.greenBright(str);
+    } else if (bad) {
+      return chalk.redBright(str);
+    } else {
+      return chalk.grey(str);
+    }
+  }
 
-    console.log("Flow:", JSON.stringify(flow, null, 2));
-      await sleep(30000);
+  let flow;
+  let lastUpdate = 0;
+
+  while (true) {
+    if (Date.now() - lastUpdate >= 60000) {
+      let [realTime, flowData] = await Promise.all([
+        client.getRealtimeData(plants.data.infos[0].id),
+        client.getFlow(plants.data.infos[0].id, new Date()),
+      ]);
+      flow = flowData;
+      lastUpdate = Date.parse(realTime.data.updateAt);
+    }
+
+    if (flow) {
+      console.clear();
+      console.log(new Date(lastUpdate).toLocaleString());
+      console.log();
+      console.log(colorIt(`${String.fromCharCode(0xD83D, 0xDD0B)} ${flow.data.soc}% ${flow.data.battPower} W`, flow.data.toBat, flow.data.batTo));
+      console.log(colorIt(`${String.fromCharCode(0xD83C, 0xDF1E)} ${flow.data.pvPower} W`, true, false));
+      console.log(colorIt(`${String.fromCharCode(0xD83C, 0xDFE0)} ${flow.data.loadOrEpsPower} W`, false, true));
+      console.log(colorIt(`${String.fromCharCode(0xD83D, 0xDD0C)} ${flow.data.gridOrMeterPower} W`, flow.data.toGrid, flow.data.gridTo));
+    }
+
+    await sleep(1000);
   }
 
   // const energy = await client.getEnergyByDay(plants.data.infos[0].id, new Date());
