@@ -8,10 +8,10 @@ const prompt = createPromptModule();
 
 
 
-let username: string
-let password: string;
+// let username: string
+// let password: string;
 
-//  = JSON.parse(readFileSync('./credentials.json', 'utf8'));
+let { username, password } = JSON.parse(readFileSync('./credentials.json', 'utf8'));
 
 async function start() {
   console.clear();
@@ -46,20 +46,29 @@ async function start() {
   console.log("Plants:", plants.data.infos.length);
   console.log("First plant, ID:", plants.data.infos[0].id, plants.data.infos[0].name);
 
-  // console.log("Plant: ", await client.getPlant(plants.data.infos[0].id));
+  console.log("Plant: ", await client.getPlant(plants.data.infos[0].id));
   
-  // const flow = await client.getFlow(plants.data.infos[0].id, new Date());
-  // console.log("Flow:", JSON.stringify(flow, null, 2));
 
-  // console.log("Generation: ", await client.getGenerationUse(plants.data.infos[0].id));
+  console.log("Generation: ", await client.getGenerationUse(plants.data.infos[0].id));
 
-  // console.log("Realtime", await client.getRealtimeData(plants.data.infos[0].id));
+  while(true) {
+    console.clear();
+    console.log("Realtime", await client.getRealtimeData(plants.data.infos[0].id));
+    const flow = await client.getFlow(plants.data.infos[0].id, new Date());
 
-  // // const energy = await client.getEnergyByDay(plants.data.infos[0].id, new Date());
-  // // console.log("Energy:", JSON.stringify(energy, null, 2));
+    console.log("Flow:", JSON.stringify(flow, null, 2));
+      await sleep(30000);
+  }
+
+  // const energy = await client.getEnergyByDay(plants.data.infos[0].id, new Date());
+  // console.log("Energy:", JSON.stringify(energy, null, 2));
 
 
   console.log("Finished!");
+}
+
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 start().catch((err) => console.error('Error running demo:', err));
