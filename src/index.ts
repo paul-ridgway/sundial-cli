@@ -8,7 +8,7 @@ import { Icons } from "./utils/icons";
 import { FlowPayload } from "sunsynk-node-api-client/lib/types/flow";
 import { GenerationUsePayload, RealtimeDataPayload } from "sunsynk-node-api-client/lib/types/plants";
 import { batteryArrows, gridArrows, loadArrows, pvArrows } from "./utils/arrows";
-import { centre, watts } from "./utils/text";
+import { batteryPower, centre, gridPower, loadPower, pvPower, solarToday, watts } from "./utils/text";
 import { colorIt, ssk } from "./utils/colours";
 
 const prompt = createPromptModule();
@@ -53,28 +53,6 @@ async function start() {
   const plants = await client.getPlants();
   console.log("Plants:", plants.infos.length);
   console.log("First plant, ID:", plants.infos[0].id, plants.infos[0].name);
-
-  function pvPower(flow: FlowPayload) {
-    return colorIt(centre(watts(flow.pvPower, 'W'), 8), flow.pvPower > 0 ? 'good' : 'neutral');
-  }
-
-  function batteryPower(flow: FlowPayload) {
-    const state = flow.batTo ? 'bad' : flow.toBat ? 'good' : 'neutral';
-    return colorIt(centre(watts(flow.battPower, 'W'), 8), state);
-  }
-
-  function loadPower(flow: FlowPayload) {
-    return colorIt(centre(watts(flow.loadOrEpsPower), 8), 'single');
-  }
-
-  function gridPower(flow: FlowPayload) {
-    const state = flow.gridTo ? 'bad' : flow.toGrid ? 'good' : 'neutral';
-    return colorIt(centre(watts(flow.gridOrMeterPower), 8), state);
-  }
-
-  function solarToday(real: RealtimeDataPayload) {
-    return chalk.blueBright(watts(real.etoday, 'kW', 7, 0));
-  }
 
   let real: RealtimeDataPayload | null = null;
   let flow: FlowPayload | null = null;
