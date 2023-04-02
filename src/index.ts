@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { SunsynkApiClient } from 'sunsynk-node-api-client';
 import { createPromptModule } from 'inquirer';
 import axiosRetry from 'axios-retry';
