@@ -26,7 +26,7 @@
     "axios-retry": "^3.4.0",
     "chalk": "^4.1.2",
     "inquirer": "^8.2.5",
-    "sunsynk-node-api-client": "^1.1.0"
+    "sunsynk-node-api-client": "^1.1.3"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.3",

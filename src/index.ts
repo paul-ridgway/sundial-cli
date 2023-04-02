@@ -1,4 +1,3 @@
-import { readFileSync } from "fs";
 import { SunsynkApiClient } from 'sunsynk-node-api-client';
 import { createPromptModule } from 'inquirer';
 import axiosRetry from 'axios-retry';
@@ -6,10 +5,11 @@ import chalk from "chalk";
 import { sleep } from "./utils/sleep";
 import { Icons } from "./utils/icons";
 import { FlowPayload } from "sunsynk-node-api-client/lib/types/flow";
-import { GenerationUsePayload, RealtimeDataPayload } from "sunsynk-node-api-client/lib/types/plants";
+import { GenerationUsePayload, PlantsPayload, RealtimeDataPayload } from "sunsynk-node-api-client/lib/types/plants";
 import { batteryArrows, gridArrows, loadArrows, pvArrows } from "./utils/arrows";
 import { batteryPower, centre, gridPower, loadPower, pvPower, solarToday, watts } from "./utils/text";
-import { colorIt, ssk } from "./utils/colours";
+import { ssk } from "./utils/colours";
+import { Config } from "./utils/config";
 
 const prompt = createPromptModule();
 
@@ -18,39 +18,109 @@ const prompt = createPromptModule();
 // let username: string
 // let password: string;
 
-let { username, password } = JSON.parse(readFileSync('./credentials.json', 'utf8'));
+const config = new Config();
 
 async function start() {
   console.clear();
 
+  let {username, password } = config;
 
   console.log(chalk.yellowBright("Sundial CLI"));
 
-  if (!username || !password) {
-    const answers = await prompt([
-      {
-        type: 'input',
-        name: 'username',
-        message: 'Username:',
-      },
-      {
-        type: 'password',
-        name: 'password',
-        message: 'Password:',
-      }
-    ]);
-    username = answers.username;
-    password = answers.password;
-  }
-
-  const client = new SunsynkApiClient(username, password);
+  const client = new SunsynkApiClient();
 
   axiosRetry((client as any)._client, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
+
+  client.setRefreshTokenProvider({
+    getRefreshToken: () => config.refreshToken || '',
+    setRefreshToken: (refreshToken: string) => {
+      config.refreshToken = refreshToken;
+    }
+  });
+
+  async function tryLogin() {
+    try {
+      return await client.getPlants();
+    } catch (e: any) {
+      return false;
+    }
+  }
+
+  async function loginPrompt() {
+    while (true) {
+      const answers = await prompt([
+        {
+          type: 'input',
+          name: 'username',
+          message: 'Username:',
+          default: username,
+        },
+        {
+          type: 'password',
+          name: 'password',
+          message: 'Password:',
+          default: password,
+        }
+      ]);
+      username = answers.username;
+      password = answers.password;
+      config.refreshToken = '';
+      client.setCredentials(username!, password!);
+      try {
+        const plants = await client.getPlants();
+        config.username = username;
+
+        const {save} = await prompt([
+          {
+            type: 'confirm',
+            name: 'save',
+            message: 'Save credentials (plain text)?',
+          }
+        ]);
+        console.log("Saving credentials", save);
+        if (save) {
+          config.password = password;
+        }
+        return plants;
+      } catch (e: any) {
+        console.error(chalk.redBright("Login failed"), e.message, '. Try again?');
+      }
+    }
+  }
+
+  async function checkCredentials(): Promise<PlantsPayload> {
+    
+    if (config.refreshToken) {
+      console.log("Attempting login with refresh token...");
+      let plants = await tryLogin();
+      if (plants) {
+        return plants;
+      }
+    }
+
+    if (config.username && config.password) {
+      console.log("Attempting login with saved credentials...");
+      config.refreshToken = '';
+      client.setCredentials(config.username, config.password);
+      let plants = await tryLogin();
+      if (plants) {
+        return plants;
+      }
+    }
+
+    return await loginPrompt();
+  }
+
+  const plants = await checkCredentials();
+
+  if (!plants) {
+    console.error(chalk.redBright("Unable to login!"));
+    return process.exit(1);
+  }
 
   console.log(chalk.green("Logged in as: %s"), (await client.getUser()).nickname);
 
   // TODO: Plant select
-  const plants = await client.getPlants();
   console.log("Plants:", plants.infos.length);
   console.log("First plant, ID:", plants.infos[0].id, plants.infos[0].name);
 
