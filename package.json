@@ -4,8 +4,8 @@
   "description": "",
   "main": "lib/index.js",
   "bin": {
-    "sundial-cli": "lib/index.js",
-    "sundial": "lib/index.js"
+    "sundial-cli": "./lib/index.js",
+    "sundial": "./lib/index.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
