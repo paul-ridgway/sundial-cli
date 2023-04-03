@@ -5,37 +5,37 @@ export class Config {
   private readonly _configFolder = `${this._homeFolder}/.config/sundial-cli`;
   private readonly _configFile = `${this._configFolder}/sundial-cli.json`;
 
-  private _refreshToken: string | null = null;
-  private _username: string | null = null;
-  private _password: string | null = null;
+  private _refreshToken: string | undefined = undefined;
+  private _username: string | undefined = undefined;
+  private _password: string | undefined = undefined;
 
   constructor() {
     this.load();
   }
 
-  get refreshToken(): string | null {
+  get refreshToken(): string | undefined {
     return this._refreshToken;
   }
 
-  set refreshToken(value: string | null) {
+  set refreshToken(value: string | undefined) {
     this._refreshToken = value;
     this.save();
   }
 
-  get username(): string | null {
+  get username(): string | undefined {
     return this._username;
   }
 
-  set username(value: string | null) {
+  set username(value: string | undefined) {
     this._username = value;
     this.save();
   }
 
-  get password(): string | null {
+  get password(): string | undefined {
     return this._password;
   }
 
-  set password(value: string | null) {
+  set password(value: string | undefined) {
     this._password = value;
     this.save();
   }
@@ -50,7 +50,7 @@ export class Config {
       username: this._username,
       password: this._password,
 
-    }, null, 2));
+    }, undefined, 2));
   }
 
   load(): void {

@@ -12,33 +12,31 @@ import { batteryArrows, gridArrows, loadArrows, pvArrows } from "./utils/arrows"
 import { batteryPower, centre, gridPower, loadPower, pvPower, solarToday, watts } from "./utils/text";
 import { ssk } from "./utils/colours";
 import { Config } from "./utils/config";
+import { RefreshTokenProvider } from 'sunsynk-node-api-client/lib/RefreshTokenProvider';
 
 const prompt = createPromptModule();
 
 
-
-// let username: string
-// let password: string;
 
 const config = new Config();
 
 async function start() {
   console.clear();
 
-  let {username, password } = config;
+  let { username, password } = config;
 
   console.log(chalk.yellowBright("Sundial CLI"));
 
-  const client = new SunsynkApiClient();
-
-  axiosRetry((client as any)._client, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
-
-  client.setRefreshTokenProvider({
+  const rtp: RefreshTokenProvider = {
     getRefreshToken: () => config.refreshToken || '',
     setRefreshToken: (refreshToken: string) => {
       config.refreshToken = refreshToken;
     }
-  });
+  };
+
+  const client = new SunsynkApiClient(username, password, rtp, 'sundial-cli');
+
+  axiosRetry((client as any)._client, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
 
   async function tryLogin() {
     try {
@@ -72,7 +70,7 @@ async function start() {
         const plants = await client.getPlants();
         config.username = username;
 
-        const {save} = await prompt([
+        const { save } = await prompt([
           {
             type: 'confirm',
             name: 'save',
@@ -91,7 +89,7 @@ async function start() {
   }
 
   async function checkCredentials(): Promise<PlantsPayload> {
-    
+
     if (config.refreshToken) {
       console.log("Attempting login with refresh token...");
       let plants = await tryLogin();
