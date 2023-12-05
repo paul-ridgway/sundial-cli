@@ -34,7 +34,7 @@ async function start() {
     }
   };
 
-  const client = new SunsynkApiClient(username, password, rtp, 'sundial-cli');
+  const client = new SunsynkApiClient(username, password, rtp, 'https://api.sunsynk.net/', 'sundial-cli');
 
   axiosRetry((client as any)._client, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
 
